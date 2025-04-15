@@ -223,10 +223,9 @@
         }
         
         /* Add debug border to see canvas boundaries */
+        /* Canvas should be sized correctly by the Rive runtime */
         canvas {
             display: block; /* Remove any extra space */
-            width: 100%;
-            height: 100%;
         }
         
         #canvas {
@@ -291,6 +290,7 @@
                         <option value="840x520">840 × 520</option>
                         <option value="1440x600">1440 × 600</option>
                     </select>
+                    <button id="apply-size-btn" class="primary-btn">Apply Size</button>
                 </div>
             </div>
         </div>
@@ -329,7 +329,7 @@
         
 
         
-        // Load a Rive file - isResize flag for when we're loading due to size change
+        // Load a Rive file - with proper scaling based on Rive FAQ recommendations
         function loadRiveFile(filename, isResize = false) {
             if (!filename) {
                 showStatus('No file selected', true);
@@ -341,55 +341,74 @@
                     showStatus(`Loading ${filename}...`);
                 }
                 
-                // Get the canvas element and its dimensions
-                const canvasElement = document.getElementById('canvas');
-                const canvasWidth = canvasElement.width;
-                const canvasHeight = canvasElement.height;
-                
                 // Clean up previous instance if it exists
                 if (currentRiveInstance) {
                     currentRiveInstance.cleanup();
                     currentRiveInstance = null;
                 }
                 
-                console.log(`Creating Rive instance with dimensions: ${canvasWidth}x${canvasHeight}`);
+                // Get the canvas element
+                const canvasElement = document.getElementById('canvas');
                 
-                // Create a new Rive instance with explicit dimensions in layout
+                // CRITICAL: From the Rive FAQ, we need to set the canvas attributes
+                // to match our container size. We also need to explicitly set style dimensions.
+                const containerWidth = document.getElementById('resizable-container').clientWidth;
+                const containerHeight = document.getElementById('resizable-container').clientHeight;
+                
+                // Debug the file we're loading
+                console.log(`Loading Rive file: ${filename}`);
+                
+                // Set BOTH the attribute dimensions AND the style dimensions
+                canvasElement.width = containerWidth;
+                canvasElement.height = containerHeight;
+                canvasElement.style.width = `${containerWidth}px`;
+                canvasElement.style.height = `${containerHeight}px`;
+                
+                console.log(`Set canvas dimensions: ${containerWidth}x${containerHeight}`);
+                
+                // Create a new Rive instance with proper fit settings
                 currentRiveInstance = new rive.Rive({
                     src: filename,
                     canvas: canvasElement,
                     autoplay: true,
-                    stateMachines: 'statemach',
-                    fit: 'cover', // Force it to fill the space
+                    // Don't specify state machine here, we'll handle it in onLoad
+                    // to be more flexible with different file formats
+                    fit: 'contain', // Let Rive maintain aspect ratio
                     alignment: 'center',
-                    // Use useArtboardSize: false to ensure it scales properly
-                    useArtboardSize: false,
                     onLoad: () => {
-                        // Debug information about the loaded animation
+                        // CRITICAL: From Rive FAQ - fix blurriness by calling this after load
+                        currentRiveInstance.resizeDrawingSurfaceToCanvas();
+                        
+                        // Debug information about the animation
                         if (currentRiveInstance && currentRiveInstance.activeArtboard) {
                             const artboard = currentRiveInstance.activeArtboard;
                             const bounds = artboard.bounds;
-                            console.log(`Loaded artboard dimensions: ${bounds.width}x${bounds.height}`);
-                            console.log(`Canvas dimensions: ${canvasElement.width}x${canvasElement.height}`);
+                            console.log(`Animation artboard size: ${bounds.width}x${bounds.height}`);
+                            console.log(`Canvas size: ${canvasElement.width}x${canvasElement.height}`);
                         }
-                        
-                        // Force a redraw after a slight delay to ensure proper rendering
-                        setTimeout(() => {
-                            if (currentRiveInstance) {
-                                currentRiveInstance.resizeDrawingSurfaceToCanvas();
-                            }
-                        }, 50);
                         
                         // Get available state machines
                         const stateMachines = currentRiveInstance.stateMachineNames;
                         console.log('Available state machines:', stateMachines);
                         
-                        // Try to play statemach if available, otherwise use the first available
-                        if (stateMachines.includes('statemach')) {
-                            currentRiveInstance.play('statemach');
-                        } else if (stateMachines.length > 0) {
+                        // Try common state machine names or use the first available
+                        const commonNames = ['statemach', 'State Machine 1', 'Main', 'Animation', 'Default'];
+                        let foundMatch = false;
+                        
+                        // Loop through common names and try to find a match
+                        for (const name of commonNames) {
+                            if (stateMachines.includes(name)) {
+                                currentRiveInstance.play(name);
+                                console.log(`Playing state machine: ${name}`);
+                                foundMatch = true;
+                                break;
+                            }
+                        }
+                        
+                        // If no common name found, just use the first available
+                        if (!foundMatch && stateMachines.length > 0) {
                             currentRiveInstance.play(stateMachines[0]);
-                            console.log(`Using state machine: ${stateMachines[0]} (statemach not found)`);
+                            console.log(`Using first available state machine: ${stateMachines[0]}`);
                         }
                         
                         if (!isResize) {
@@ -460,65 +479,35 @@
 
 
         
-        // Apply the selected size preset - COMPLETELY NEW APPROACH
+        // Apply the selected size preset without reloading the animation
         function applySizePreset() {
             // Get the selected size
             const sizePresetSelect = document.getElementById('size-preset');
             const selectedSize = sizePresetSelect.value;
             const [width, height] = selectedSize.split('x').map(dim => parseInt(dim, 10));
             
-            // Update DOM dimensions
-            updateCanvasDimensions(width, height);
-            
-            // Get current animation file
-            const selector = document.getElementById('rive-selector');
-            const currentFile = selector.value;
-            
-            // If we have a current animation, completely reload it with new dimensions
-            if (currentFile) {
-                // Clean house - remove the old instance entirely
-                if (currentRiveInstance) {
-                    // Check if we need to reload by comparing with original dimensions
-                    const containerWidth = document.getElementById('resizable-container').clientWidth;
-                    const containerHeight = document.getElementById('resizable-container').clientHeight;
-                    console.log(`New container dimensions: ${containerWidth}x${containerHeight}`);
-                    
-                    currentRiveInstance.cleanup();
-                    currentRiveInstance = null;
-                }
-                
-                // Show status while loading
-                showStatus(`Resizing to ${width} × ${height} and reloading animation...`);
-                
-                // Instead of trying to manipulate the existing animation, just reload it fresh
-                // with the new dimensions already set in the DOM
-                setTimeout(() => {
-                    loadRiveFile(currentFile, true); // true = is a resize operation
-                }, 10);
-            } else {
-                showStatus(`Size set to ${width} × ${height}`);
-            }
-        }
-        
-        // Helper function to update canvas dimensions
-        function updateCanvasDimensions(width, height) {
+            // Get the container and canvas elements
             const container = document.getElementById('resizable-container');
-            const canvas = document.getElementById('canvas');
+            const canvasElement = document.getElementById('canvas');
             
-            console.log(`Setting dimensions to ${width}x${height}`);
-            
-            // Set pixel dimensions on the elements
+            // Update container dimensions immediately
             container.style.width = `${width}px`;
             container.style.height = `${height}px`;
             
-            // Set the actual canvas element dimensions
-            canvas.width = width;
-            canvas.height = height;
+            // Update the canvas size immediately as well
+            canvasElement.width = width;
+            canvasElement.height = height;
+            canvasElement.style.width = `${width}px`;
+            canvasElement.style.height = `${height}px`;
             
-            // Also update these properties in case they matter
-            canvas.style.width = `${width}px`;
-            canvas.style.height = `${height}px`;
+            // Show status immediately
+            showStatus(`Size set to ${width}×${height}`);
+            
+            // Note: The animation reload is now handled by the change event listener
+            // to ensure it happens instantaneously
         }
+        
+
         
 
         
@@ -534,18 +523,56 @@
                 loadRiveFile(e.target.value);
             });
             
-            // Set up the refresh button
+            // Set up the refresh button to restart the current animation
             const refreshBtn = document.getElementById('refresh-btn');
             refreshBtn.addEventListener('click', () => {
-                fetchRiveFiles();
-                showStatus('Animation list refreshed');
+                // Get the current animation
+                const selector = document.getElementById('rive-selector');
+                const currentFile = selector.value;
+                
+                // If there's a current animation, reload it to restart
+                if (currentFile && currentRiveInstance) {
+                    // Clean up the existing instance
+                    currentRiveInstance.cleanup();
+                    currentRiveInstance = null;
+                    
+                    // Reload the same animation
+                    loadRiveFile(currentFile);
+                    showStatus('Animation restarted');
+                } else {
+                    // If no animation is loaded, refresh the list
+                    fetchRiveFiles();
+                    showStatus('Animation list refreshed');
+                }
             });
             
 
             
-            // Set up the size preset dropdown to apply changes immediately
+            // Set up the size preset dropdown (no automatic apply)
             const sizePresetSelect = document.getElementById('size-preset');
-            sizePresetSelect.addEventListener('change', applySizePreset);
+            
+            // Set up the Apply Size button
+            const applySizeBtn = document.getElementById('apply-size-btn');
+            applySizeBtn.addEventListener('click', function() {
+                // Apply the selected size
+                applySizePreset();
+                
+                // Get the current animation file
+                const selector = document.getElementById('rive-selector');
+                const currentFile = selector.value;
+                
+                // If we have a current animation, reload it with new size
+                if (currentFile) {
+                    // First clean up the existing instance
+                    if (currentRiveInstance) {
+                        currentRiveInstance.cleanup();
+                        currentRiveInstance = null;
+                    }
+                    
+                    // Reload the animation with new dimensions
+                    loadRiveFile(currentFile, true);
+                }
+            });
             
             // Add window resize handler to handle window resizing
             window.addEventListener('resize', function() {
@@ -555,11 +582,12 @@
                 }
             });
             
-            // Apply the default size preset on startup
-            setTimeout(applySizePreset, 500);
+            // Don't apply any size preset on startup - wait for user to select
             
-            // Fetch the list of Rive files
+            // Fetch the list of Rive files first
             fetchRiveFiles();
+            
+
             
             // Initial file will be loaded by fetchRiveFiles
             
