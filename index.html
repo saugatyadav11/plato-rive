@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feature 1</title>
+    <title>Rive Previews</title>
     <style>
         body {
             margin: 0;
@@ -44,74 +44,170 @@
             padding: 10px;
             border-radius: 4px;
             font-weight: bold;
+            display: none; /* Hide by default, show only when needed */
         }
         
         .success {
             background-color: #d4edda;
             color: #155724;
+            display: block;
         }
         
         .error {
             background-color: #f8d7da;
             color: #721c24;
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Feature 1</h1>
+        <h1>Rive Previews</h1>
+        <div class="controls">
+            <label for="rive-selector">Select Animation: </label>
+            <select id="rive-selector">
+                <option value="enviro" selected>enviro</option>
+                <!-- Other Rive files will be loaded dynamically -->
+            </select>
+        </div>
         <!-- Use canvas element with style dimensions as recommended -->
         <canvas 
             id="canvas" 
             style="width: 840px; height: 520px;"
         ></canvas>
-
+        <div id="status"></div>
     </div>
 
     <!-- Load the Rive Runtime -->
     <script src="https://unpkg.com/@rive-app/canvas@2.1.0"></script>
     
     <script>
-        // Log messages to console only
+        // Global variable to store the current Rive instance
+        let currentRiveInstance = null;
+        
+        // Display status messages
         function showStatus(message, isError = false) {
+            const statusEl = document.getElementById('status');
+            if (statusEl) {
+                statusEl.textContent = message;
+                statusEl.className = isError ? 'error' : 'success';
+                statusEl.style.display = 'block';
+                setTimeout(() => {
+                    statusEl.style.display = 'none';
+                }, 3000); // Hide after 3 seconds
+            }
             console.log(isError ? 'ERROR: ' : 'INFO: ', message);
         }
-
-        // Wait for the page to load
-        window.addEventListener('load', () => {
-            showStatus('Loading Rive runtime...');
-            
+        
+        // Load a Rive file
+        function loadRiveFile(filename) {
             try {
+                // Clean up previous instance if it exists
+                if (currentRiveInstance) {
+                    currentRiveInstance.cleanup();
+                    currentRiveInstance = null;
+                }
+                
                 const canvasElement = document.getElementById('canvas');
                 
-                // Create a new Rive instance following the recommended approach
-                const r = new rive.Rive({
-                    src: 'enviro', // Path to your Rive file
+                // Create a new Rive instance
+                currentRiveInstance = new rive.Rive({
+                    src: filename, // Path to the selected Rive file
                     canvas: canvasElement,
                     autoplay: true,
-                    stateMachines: 'statemach', // Specify the state machine to use
+                    stateMachines: 'statemach', // Try to use statemach state machine
                     onLoad: () => {
                         // Resize drawing surface to fix blurry rendering
-                        r.resizeDrawingSurfaceToCanvas();
+                        currentRiveInstance.resizeDrawingSurfaceToCanvas();
                         
-                        showStatus('Animation loaded successfully at high quality!');
-                        console.log('Available state machines:', r.stateMachineNames);
+                        // Get available state machines
+                        const stateMachines = currentRiveInstance.stateMachineNames;
+                        console.log('Available state machines:', stateMachines);
+                        
+                        // Try to play statemach if available, otherwise use the first available
+                        if (stateMachines.includes('statemach')) {
+                            currentRiveInstance.play('statemach');
+                        } else if (stateMachines.length > 0) {
+                            currentRiveInstance.play(stateMachines[0]);
+                            console.log(`Using state machine: ${stateMachines[0]} (statemach not found)`);
+                        }
+                        
+                        showStatus(`Loaded ${filename} successfully!`);
                     },
                     onError: (err) => {
-                        showStatus(`Error loading Rive animation: ${err}`, true);
+                        showStatus(`Error loading ${filename}: ${err}`, true);
                         console.error('Error:', err);
                     }
-                });
-                
-                // Handle window resize to maintain quality
-                window.addEventListener('resize', () => {
-                    r.resizeDrawingSurfaceToCanvas();
                 });
                 
             } catch (error) {
                 showStatus(`Error: ${error.message}`, true);
                 console.error('Error details:', error);
             }
+        }
+        
+        // Fetch and populate the list of Rive files
+        async function fetchRiveFiles() {
+            try {
+                // Fetch the list of files from the repository
+                const response = await fetch('https://api.github.com/repos/saugatyadav11/plato-rive/contents/');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch repository contents');
+                }
+                
+                const files = await response.json();
+                const riveFiles = files.filter(file => 
+                    file.type === 'file' && 
+                    (file.name.endsWith('.riv') || !file.name.includes('.')) // Include both .riv files and files without extensions
+                );
+                
+                const selector = document.getElementById('rive-selector');
+                
+                // Clear existing options except the first one
+                while (selector.options.length > 1) {
+                    selector.remove(1);
+                }
+                
+                // Add options for each Rive file
+                riveFiles.forEach(file => {
+                    if (file.name !== 'enviro') { // Skip enviro as it's already in the list
+                        const option = document.createElement('option');
+                        option.value = file.name;
+                        option.textContent = file.name;
+                        selector.appendChild(option);
+                    }
+                });
+                
+                console.log(`Found ${riveFiles.length} Rive files`);
+                
+            } catch (error) {
+                showStatus('Failed to load file list: ' + error.message, true);
+                console.error('Error fetching Rive files:', error);
+            }
+        }
+
+        // Wait for the page to load
+        window.addEventListener('load', () => {
+            showStatus('Loading Rive runtime...');
+            
+            // Set up the dropdown change event
+            const selector = document.getElementById('rive-selector');
+            selector.addEventListener('change', (e) => {
+                loadRiveFile(e.target.value);
+            });
+            
+            // Fetch the list of Rive files
+            fetchRiveFiles();
+            
+            // Load the initial Rive file
+            loadRiveFile('enviro');
+            
+            // Handle window resize to maintain quality
+            window.addEventListener('resize', () => {
+                if (currentRiveInstance) {
+                    currentRiveInstance.resizeDrawingSurfaceToCanvas();
+                }
+            });
         });
     </script>
 </body>
