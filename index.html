@@ -117,8 +117,7 @@
         <div class="controls">
             <label for="rive-selector">Select Animation: </label>
             <select id="rive-selector">
-                <option value="enviro" selected>enviro</option>
-                <!-- Other Rive files will be loaded dynamically -->
+                <!-- Rive files will be loaded dynamically -->
             </select>
             <button id="refresh-btn" title="Refresh animation list">↻</button>
         </div>
@@ -138,8 +137,8 @@
         <div id="status"></div>
     </div>
 
-    <!-- Load the Rive Runtime -->
-    <script src="https://unpkg.com/@rive-app/canvas@2.1.0"></script>
+    <!-- Load the latest Rive Runtime -->
+    <script src="https://unpkg.com/@rive-app/canvas@latest"></script>
     
     <script>
         // Global variable to store the current Rive instance
@@ -243,22 +242,30 @@
                 
                 const selector = document.getElementById('rive-selector');
                 
-                // Clear existing options except the first one
-                while (selector.options.length > 1) {
-                    selector.remove(1);
+                // Clear all existing options
+                selector.innerHTML = '';
+                
+                if (riveFiles.length === 0) {
+                    showStatus('No Rive files found in the repository', true);
+                    return;
                 }
                 
                 // Add options for each Rive file
                 riveFiles.forEach(file => {
-                    if (file.name !== 'enviro') { // Skip enviro as it's already in the list
-                        const option = document.createElement('option');
-                        option.value = file.name;
-                        option.textContent = file.name;
-                        selector.appendChild(option);
-                    }
+                    const option = document.createElement('option');
+                    option.value = file.name;
+                    option.textContent = file.name;
+                    selector.appendChild(option);
                 });
                 
                 console.log(`Found ${riveFiles.length} Rive files`);
+                
+                // Load the first available file automatically
+                if (selector.options.length > 0) {
+                    const firstFile = selector.options[0].value;
+                    loadRiveFile(firstFile);
+                    showStatus(`Automatically loaded ${firstFile}`);
+                }
                 
             } catch (error) {
                 showStatus('Failed to load file list: ' + error.message, true);
@@ -313,8 +320,7 @@
             // Fetch the list of Rive files
             fetchRiveFiles();
             
-            // Load the initial Rive file
-            loadRiveFile('enviro');
+            // Initial file will be loaded by fetchRiveFiles
             
             // Handle window resize to maintain quality
             window.addEventListener('resize', () => {
