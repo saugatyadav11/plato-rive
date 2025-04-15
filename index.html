@@ -193,13 +193,13 @@
             border: 1px solid var(--border);
             position: relative;
             width: 100%;
-            height: auto;
+            height: 520px; /* Fixed height to ensure visibility */
         }
         
         #canvas {
             display: block;
-            width: 100% !important;
-            height: auto !important;
+            width: 100%;
+            height: 100%;
         }
         
 
@@ -252,7 +252,7 @@
                     <select id="rive-selector">
                         <!-- Rive files will be loaded dynamically -->
                     </select>
-                    <button id="refresh-btn" title="Refresh animation list">↻</button>
+                    <button id="refresh-btn">Refresh</button>
                 </div>
                 <div class="control-group">
                     <label for="max-width">Max Width:</label>
@@ -316,7 +316,7 @@
                     canvas: canvasElement,
                     autoplay: true,
                     stateMachines: 'statemach', // Try to use statemach state machine
-                    fit: 'cover', // Fill available space
+                    fit: 'contain', // Ensure animation fits within canvas
                     alignment: 'center', // Center the animation
                     onLoad: () => {
                         // Resize canvas to fit container while maintaining aspect ratio
@@ -411,7 +411,7 @@
             showStatus(`Max width set to ${maxWidth}px`);
         }
         
-        // Resize the canvas to fill the container width while maintaining aspect ratio
+        // Resize the canvas to fill the container while maintaining aspect ratio
         function resizeCanvasToFitContainer() {
             const container = document.getElementById('resizable-container');
             const canvas = document.getElementById('canvas');
@@ -420,18 +420,11 @@
                 return;
             }
             
-            // Get the original artboard aspect ratio
-            const artboard = currentRiveInstance.activeArtboard;
-            const bounds = artboard.bounds;
-            const aspectRatio = bounds.height / bounds.width;
-            
-            // Get container width
+            // Get container dimensions
             const containerWidth = container.clientWidth;
+            const containerHeight = container.clientHeight;
             
-            // Calculate height based on aspect ratio
-            const containerHeight = containerWidth * aspectRatio;
-            
-            // Set canvas dimensions
+            // Set canvas dimensions to match container
             canvas.width = containerWidth;
             canvas.height = containerHeight;
             
