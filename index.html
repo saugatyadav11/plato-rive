@@ -153,8 +153,8 @@
         
         #refresh-btn {
             padding: 6px 8px;
-            font-size: 16px;
-            font-weight: bold;
+            font-size: 14px;
+            font-weight: 400;
         }
         
         input[type="number"] {
@@ -189,7 +189,6 @@
             justify-content: center;
             align-items: center;
             width: 100%;
-            max-width: 1200px;
             margin: 0 auto;
             position: relative;
         }
@@ -201,11 +200,12 @@
             border-radius: var(--radius);
             border: 1px solid var(--border);
             position: relative;
-            width: 100%;
-            height: 520px; /* Fixed height to ensure visibility */
+            width: 800px;
+            height: 520px;
             display: flex;
             justify-content: center;
             align-items: center;
+            margin: 0 auto;
         }
         
         #canvas {
@@ -264,13 +264,9 @@
                     <select id="rive-selector">
                         <!-- Rive files will be loaded dynamically -->
                     </select>
-                    <button id="refresh-btn" class="secondary-btn">Refresh</button>
+                    <button id="refresh-btn" class="primary-btn">Refresh</button>
                 </div>
-                <div class="control-group">
-                    <label for="max-width">Max Width:</label>
-                    <input type="number" id="max-width" value="1200" min="100" max="2000" step="10">
-                    <button id="apply-max-width-btn" class="secondary-btn">Apply</button>
-                </div>
+
             </div>
         </div>
     </header>
@@ -330,14 +326,8 @@
                     stateMachines: 'statemach', // Try to use statemach state machine
                     fit: 'contain', // Ensure animation fits within canvas
                     alignment: 'center', // Center the animation
-                    layout: new rive.Layout({
-                        fit: 'contain',
-                        alignment: 'center',
-                        minX: 0,
-                        minY: 0,
-                        maxX: canvasElement.parentElement.clientWidth,
-                        maxY: canvasElement.parentElement.clientHeight
-                    }),
+                    fit: 'contain',
+                    alignment: 'center',
                     onLoad: () => {
                         
                         // Get available state machines
@@ -414,53 +404,13 @@
             }
         }
 
-        // Apply the maximum width and adjust container
-        function applyMaxWidth() {
-            const maxWidthInput = document.getElementById('max-width');
-            const canvasWrapper = document.querySelector('.canvas-wrapper');
-            const maxWidth = parseInt(maxWidthInput.value, 10) || 1200;
-            
-            // Update the canvas wrapper max width
-            canvasWrapper.style.maxWidth = `${maxWidth}px`;
-            
-            // Resize the canvas to fill available width
-            resizeCanvasToFitContainer();
-            
-            showStatus(`Max width set to ${maxWidth}px`);
-        }
+
         
-        // Handle window resize and properly scale the animation
+        // Simple function to ensure the canvas fits the animation
         function resizeCanvasToFitContainer() {
-            const container = document.getElementById('resizable-container');
-            const canvas = document.getElementById('canvas');
-            
-            if (!currentRiveInstance || !currentRiveInstance.activeArtboard) {
-                return;
+            if (currentRiveInstance) {
+                currentRiveInstance.resizeDrawingSurfaceToCanvas();
             }
-            
-            // Get the dimensions of the container
-            const containerWidth = container.clientWidth;
-            const containerHeight = container.clientHeight;
-            
-            // Set the canvas dimensions
-            canvas.width = containerWidth;
-            canvas.height = containerHeight;
-            
-            // Create a new layout based on container size
-            const layout = new rive.Layout({
-                fit: 'contain',
-                alignment: 'center',
-                minX: 0,
-                minY: 0,
-                maxX: containerWidth,
-                maxY: containerHeight
-            });
-            
-            // Update the Rive instance with the new layout
-            currentRiveInstance.layout = layout;
-            
-            // Apply the new layout and resize
-            currentRiveInstance.resizeDrawingSurfaceToCanvas();
         }
         
         // Initialize container size
@@ -486,9 +436,7 @@
                 showStatus('Animation list refreshed');
             });
             
-            // Set up the max width button
-            const applyMaxWidthBtn = document.getElementById('apply-max-width-btn');
-            applyMaxWidthBtn.addEventListener('click', applyMaxWidth);
+
             
             // Set up the resizable container
             setupResizableContainer();
