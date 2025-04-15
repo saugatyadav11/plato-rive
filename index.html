@@ -332,6 +332,10 @@
                     fit: 'contain', // Always use contain to maintain aspect ratio
                     alignment: 'center', // Center the animation
                     renderFrameRate: 60,
+                    layout: new rive.Layout({
+                        fit: 'contain',
+                        alignment: 'center',
+                    }),
                     onLoad: () => {
                         // CRITICAL: Force a redraw with correct dimensions to fix blurriness
                         setTimeout(() => {
@@ -420,49 +424,65 @@
             const selectedSize = sizePresetSelect.value;
             const [width, height] = selectedSize.split('x').map(dim => parseInt(dim, 10));
             
-            const container = document.getElementById('resizable-container');
-            const canvas = document.getElementById('canvas');
-            
-            // Update container dimensions
-            container.style.width = `${width}px`;
-            container.style.height = `${height}px`;
-            
-            // Set canvas dimensions
-            canvas.width = width;
-            canvas.height = height;
-            
-            // For artboards with different dimensions, ensure they scale properly
+            // Force recreation of the animation with the new size
             if (currentRiveInstance) {
-                // Update the layout to force rescaling
-                const layout = new rive.Layout({
-                    fit: 'contain',
-                    alignment: 'center',
-                });
-                currentRiveInstance.layout = layout;
-                
-                // Fix blurriness
-                currentRiveInstance.resizeDrawingSurfaceToCanvas();
-            }
-            
-            showStatus(`Size set to ${width} × ${height}`);
-            
-            // Try to reload the current animation to ensure proper scaling
-            if (currentRiveInstance) {
+                // Get current animation file
                 const selector = document.getElementById('rive-selector');
                 const currentFile = selector.value;
-                if (currentFile) {
-                    setTimeout(() => {
+                
+                // Clean up existing Rive instance
+                currentRiveInstance.cleanup();
+                currentRiveInstance = null;
+                
+                // Update container and canvas dimensions first
+                const container = document.getElementById('resizable-container');
+                const canvas = document.getElementById('canvas');
+                
+                container.style.width = `${width}px`;
+                container.style.height = `${height}px`;
+                canvas.width = width;
+                canvas.height = height;
+                
+                showStatus(`Size set to ${width} × ${height}, reloading animation...`);
+                
+                // Reload the animation with new dimensions
+                setTimeout(() => {
+                    if (currentFile) {
                         loadRiveFile(currentFile);
-                    }, 50);
-                }
+                    }
+                }, 50);
+            } else {
+                // Just update dimensions if no animation is loaded yet
+                const container = document.getElementById('resizable-container');
+                const canvas = document.getElementById('canvas');
+                
+                container.style.width = `${width}px`;
+                container.style.height = `${height}px`;
+                canvas.width = width;
+                canvas.height = height;
+                
+                showStatus(`Size set to ${width} × ${height}`);
             }
         }
         
-        // Function to ensure the canvas fits the animation
+        // Force a complete redraw of the animation at the proper size
         function resizeCanvasToFitContainer() {
             if (currentRiveInstance) {
                 // This is critical to fix blurry rendering
                 currentRiveInstance.resizeDrawingSurfaceToCanvas();
+                
+                // Get the canvas dimensions
+                const canvas = document.getElementById('canvas');
+                const width = canvas.width;
+                const height = canvas.height;
+                
+                // Ensure the animation fits the canvas properly
+                const layout = new rive.Layout({
+                    fit: 'contain',
+                    alignment: 'center',
+                });
+                
+                currentRiveInstance.layout = layout;
             }
         }
         
