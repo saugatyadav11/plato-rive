@@ -182,19 +182,68 @@
             width: 100%;
             max-width: 1440px;
             margin: 0 auto;
+            position: relative;
         }
         
         .canvas-container {
-            overflow: auto;
+            overflow: hidden;
             background-color: var(--card);
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
             border-radius: var(--radius);
             border: 1px solid var(--border);
+            position: relative;
+            resize: both;
+            min-width: 200px;
+            min-height: 150px;
         }
         
         #canvas {
             display: block;
             object-fit: contain; /* Prevent distortion */
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        /* Resizing handles */
+        .resize-handle {
+            position: absolute;
+            width: 10px;
+            height: 100%;
+            cursor: ew-resize;
+            z-index: 10;
+        }
+        
+        .resize-handle-left {
+            left: 0;
+            top: 0;
+        }
+        
+        .resize-handle-right {
+            right: 0;
+            top: 0;
+        }
+        
+        .resize-handle-bottom {
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            cursor: ns-resize;
+        }
+        
+        .resize-handle-corner {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            right: 0;
+            bottom: 0;
+            cursor: nwse-resize;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2371717a' viewBox='0 0 16 16'%3E%3Cpath d='M11 9.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm-3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm-3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm-3 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: bottom right;
+            opacity: 0.7;
         }
         
         /* Status message styling */
@@ -252,8 +301,7 @@
                     <input type="number" id="canvas-width" value="840" min="100" max="2000" step="10">
                     <label for="canvas-height">Height:</label>
                     <input type="number" id="canvas-height" value="520" min="100" max="2000" step="10">
-                    <button id="resize-btn">Resize</button>
-                    <button id="auto-detect-btn" class="primary-btn">Auto Detect Dimensions</button>
+                    <button id="resize-btn">Apply Size</button>
                 </div>
             </div>
         </div>
@@ -261,8 +309,12 @@
     
     <main>
         <div class="canvas-wrapper">
-            <div class="canvas-container">
+            <div class="canvas-container" id="resizable-container">
                 <canvas id="canvas" style="width: 840px; height: 520px;"></canvas>
+                <div class="resize-handle resize-handle-left" id="resize-left"></div>
+                <div class="resize-handle resize-handle-right" id="resize-right"></div>
+                <div class="resize-handle resize-handle-bottom" id="resize-bottom"></div>
+                <div class="resize-handle-corner" id="resize-corner"></div>
             </div>
         </div>
     </main>
@@ -290,51 +342,7 @@
             console.log(isError ? 'ERROR: ' : 'INFO: ', message);
         }
         
-        // Detect and apply artboard dimensions
-        function detectArtboardDimensions() {
-            if (!currentRiveInstance) {
-                showStatus('No animation loaded', true);
-                return false;
-            }
-            
-            try {
-                const artboard = currentRiveInstance.activeArtboard;
-                if (artboard) {
-                    const bounds = artboard.bounds;
-                    if (bounds) {
-                        const artboardWidth = Math.round(bounds.width);
-                        const artboardHeight = Math.round(bounds.height);
-                        console.log(`Detected artboard size: ${artboardWidth}x${artboardHeight}`);
-                        
-                        // Update dimension inputs with the actual artboard size
-                        document.getElementById('canvas-width').value = artboardWidth;
-                        document.getElementById('canvas-height').value = artboardHeight;
-                        
-                        // Resize the canvas to match the artboard
-                        const canvasElement = document.getElementById('canvas');
-                        canvasElement.width = artboardWidth;
-                        canvasElement.height = artboardHeight;
-                        canvasElement.style.width = `${artboardWidth}px`;
-                        canvasElement.style.height = `${artboardHeight}px`;
-                        
-                        // Force a redraw with the correct dimensions
-                        if (currentRiveInstance) {
-                            currentRiveInstance.resizeDrawingSurfaceToCanvas();
-                        }
-                        
-                        showStatus(`Applied artboard dimensions: ${artboardWidth}x${artboardHeight}`);
-                        return true;
-                    }
-                }
-            } catch (e) {
-                console.log('Could not determine artboard size:', e);
-                showStatus('Failed to detect artboard dimensions', true);
-                return false;
-            }
-            
-            showStatus('Could not detect artboard dimensions', true);
-            return false;
-        }
+
         
         // Load a Rive file
         function loadRiveFile(filename) {
@@ -444,6 +452,7 @@
             const widthInput = document.getElementById('canvas-width');
             const heightInput = document.getElementById('canvas-height');
             const canvas = document.getElementById('canvas');
+            const container = document.getElementById('resizable-container');
             
             // Get the new dimensions
             const newWidth = parseInt(widthInput.value, 10) || 840;
@@ -455,6 +464,10 @@
             canvas.style.width = `${newWidth}px`;
             canvas.style.height = `${newHeight}px`;
             
+            // Update container size to match
+            container.style.width = `${newWidth}px`;
+            container.style.height = `${newHeight}px`;
+            
             // If we have a Rive instance, resize the drawing surface
             if (currentRiveInstance) {
                 // This is critical for fixing the blurry rendering
@@ -462,6 +475,116 @@
             }
             
             showStatus(`Canvas resized to ${newWidth}x${newHeight}px`);
+        }
+        
+        // Set up the resizable container with drag handles
+        function setupResizableContainer() {
+            const container = document.getElementById('resizable-container');
+            const canvas = document.getElementById('canvas');
+            const widthInput = document.getElementById('canvas-width');
+            const heightInput = document.getElementById('canvas-height');
+            
+            let startX, startY, startWidth, startHeight;
+            let resizing = false;
+            let currentHandle = null;
+            
+            // Initialize container size to match canvas
+            container.style.width = canvas.style.width;
+            container.style.height = canvas.style.height;
+            
+            // Handle for left resize
+            const leftHandle = document.getElementById('resize-left');
+            leftHandle.addEventListener('mousedown', function(e) {
+                startResize(e, 'left');
+            });
+            
+            // Handle for right resize
+            const rightHandle = document.getElementById('resize-right');
+            rightHandle.addEventListener('mousedown', function(e) {
+                startResize(e, 'right');
+            });
+            
+            // Handle for bottom resize
+            const bottomHandle = document.getElementById('resize-bottom');
+            bottomHandle.addEventListener('mousedown', function(e) {
+                startResize(e, 'bottom');
+            });
+            
+            // Handle for corner resize
+            const cornerHandle = document.getElementById('resize-corner');
+            cornerHandle.addEventListener('mousedown', function(e) {
+                startResize(e, 'corner');
+            });
+            
+            // Start resize operation
+            function startResize(e, handle) {
+                e.preventDefault();
+                resizing = true;
+                currentHandle = handle;
+                
+                startX = e.clientX;
+                startY = e.clientY;
+                startWidth = parseInt(document.defaultView.getComputedStyle(container).width, 10);
+                startHeight = parseInt(document.defaultView.getComputedStyle(container).height, 10);
+                
+                document.addEventListener('mousemove', doResize);
+                document.addEventListener('mouseup', stopResize);
+            }
+            
+            // Perform resize during mouse move
+            function doResize(e) {
+                if (!resizing) return;
+                
+                let newWidth = startWidth;
+                let newHeight = startHeight;
+                
+                if (currentHandle === 'left') {
+                    const dx = startX - e.clientX;
+                    newWidth = Math.max(200, startWidth + dx);
+                } else if (currentHandle === 'right') {
+                    const dx = e.clientX - startX;
+                    newWidth = Math.max(200, startWidth + dx);
+                } else if (currentHandle === 'bottom') {
+                    const dy = e.clientY - startY;
+                    newHeight = Math.max(150, startHeight + dy);
+                } else if (currentHandle === 'corner') {
+                    const dx = e.clientX - startX;
+                    const dy = e.clientY - startY;
+                    newWidth = Math.max(200, startWidth + dx);
+                    newHeight = Math.max(150, startHeight + dy);
+                }
+                
+                // Update container size
+                container.style.width = `${newWidth}px`;
+                container.style.height = `${newHeight}px`;
+                
+                // Update canvas size
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                canvas.style.width = `${newWidth}px`;
+                canvas.style.height = `${newHeight}px`;
+                
+                // Update input fields
+                widthInput.value = newWidth;
+                heightInput.value = newHeight;
+                
+                // Update Rive instance
+                if (currentRiveInstance) {
+                    currentRiveInstance.resizeDrawingSurfaceToCanvas();
+                }
+            }
+            
+            // Stop resize operation
+            function stopResize() {
+                resizing = false;
+                document.removeEventListener('mousemove', doResize);
+                document.removeEventListener('mouseup', stopResize);
+                
+                // Show status message with final dimensions
+                const finalWidth = parseInt(canvas.style.width);
+                const finalHeight = parseInt(canvas.style.height);
+                showStatus(`Canvas resized to ${finalWidth}x${finalHeight}px`);
+            }
         }
         
         // Wait for the page to load
@@ -485,9 +608,8 @@
             const resizeBtn = document.getElementById('resize-btn');
             resizeBtn.addEventListener('click', resizeCanvas);
             
-            // Set up the auto detect dimensions button
-            const autoDetectBtn = document.getElementById('auto-detect-btn');
-            autoDetectBtn.addEventListener('click', detectArtboardDimensions);
+            // Set up the resizable container
+            setupResizableContainer();
             
             // Fetch the list of Rive files
             fetchRiveFiles();
