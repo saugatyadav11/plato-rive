@@ -88,6 +88,13 @@
             display: block;
             background-color: white;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            object-fit: contain; /* Prevent distortion */
+        }
+        
+        .canvas-container {
+            width: 100%;
+            overflow-x: auto; /* Allow horizontal scrolling for very wide animations */
+            margin: 0 auto;
         }
         
         #status {
@@ -130,10 +137,12 @@
             <button id="resize-btn">Resize</button>
         </div>
         <!-- Use canvas element with style dimensions as recommended -->
-        <canvas 
-            id="canvas" 
-            style="width: 840px; height: 520px;"
-        ></canvas>
+        <div class="canvas-container">
+            <canvas 
+                id="canvas" 
+                style="width: 840px; height: 520px;"
+            ></canvas>
+        </div>
         <div id="status"></div>
     </div>
 
@@ -161,13 +170,19 @@
         // Load a Rive file
         function loadRiveFile(filename) {
             try {
+                showStatus(`Loading ${filename}...`);
+                
+                // Reset canvas dimensions to default before loading new file
+                // This prevents the previous file's dimensions from affecting the new file
+                const canvasElement = document.getElementById('canvas');
+                canvasElement.style.width = '840px';
+                canvasElement.style.height = '520px';
+                
                 // Clean up previous instance if it exists
                 if (currentRiveInstance) {
                     currentRiveInstance.cleanup();
                     currentRiveInstance = null;
                 }
-                
-                const canvasElement = document.getElementById('canvas');
                 
                 // Create a new Rive instance
                 currentRiveInstance = new rive.Rive({
@@ -175,6 +190,8 @@
                     canvas: canvasElement,
                     autoplay: true,
                     stateMachines: 'statemach', // Try to use statemach state machine
+                    fit: 'contain', // Ensure animation fits within canvas
+                    alignment: 'center', // Center the animation
                     onLoad: () => {
                         // CRITICAL: Resize drawing surface to fix blurry rendering
                         // This ensures the canvas drawing surface matches the display size
@@ -199,12 +216,28 @@
                             if (artboard) {
                                 const bounds = artboard.bounds;
                                 if (bounds) {
-                                    console.log(`Artboard size: ${bounds.width}x${bounds.height}`);
+                                    const artboardWidth = Math.round(bounds.width);
+                                    const artboardHeight = Math.round(bounds.height);
+                                    console.log(`Artboard size: ${artboardWidth}x${artboardHeight}`);
+                                    
                                     // Update dimension inputs with the actual artboard size
-                                    document.getElementById('canvas-width').value = Math.round(bounds.width);
-                                    document.getElementById('canvas-height').value = Math.round(bounds.height);
+                                    document.getElementById('canvas-width').value = artboardWidth;
+                                    document.getElementById('canvas-height').value = artboardHeight;
+                                    
                                     // Resize the canvas to match the artboard
-                                    resizeCanvas();
+                                    canvasElement.style.width = `${artboardWidth}px`;
+                                    canvasElement.style.height = `${artboardHeight}px`;
+                                    
+                                    // Force a redraw with the correct dimensions
+                                    currentRiveInstance.resizeDrawingSurfaceToCanvas();
+                                    
+                                    // Adjust container width for very wide animations
+                                    const container = document.querySelector('.canvas-container');
+                                    if (artboardWidth > window.innerWidth - 40) {
+                                        container.style.width = `${Math.min(artboardWidth, 1440)}px`;
+                                    } else {
+                                        container.style.width = '100%';
+                                    }
                                 }
                             }
                         } catch (e) {
@@ -286,6 +319,14 @@
             // Update the canvas style
             canvas.style.width = `${newWidth}px`;
             canvas.style.height = `${newHeight}px`;
+            
+            // Adjust container width for very wide animations
+            const container = document.querySelector('.canvas-container');
+            if (newWidth > window.innerWidth - 40) {
+                container.style.width = `${Math.min(newWidth, 1440)}px`;
+            } else {
+                container.style.width = '100%';
+            }
             
             // If we have a Rive instance, resize the drawing surface
             if (currentRiveInstance) {
