@@ -142,8 +142,17 @@
             background-color: var(--primary);
         }
         
+        .secondary-btn {
+            background-color: var(--secondary);
+            color: var(--secondary-foreground);
+        }
+        
+        .secondary-btn:hover {
+            background-color: var(--secondary-hover);
+        }
+        
         #refresh-btn {
-            padding: 8px 12px;
+            padding: 6px 8px;
             font-size: 16px;
             font-weight: bold;
         }
@@ -194,12 +203,15 @@
             position: relative;
             width: 100%;
             height: 520px; /* Fixed height to ensure visibility */
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
         
         #canvas {
             display: block;
-            width: 100%;
-            height: 100%;
+            /* Don't set explicit width/height to let Rive control this */
+            /* The canvas will be sized by the Rive instance */
         }
         
 
@@ -252,12 +264,12 @@
                     <select id="rive-selector">
                         <!-- Rive files will be loaded dynamically -->
                     </select>
-                    <button id="refresh-btn">Refresh</button>
+                    <button id="refresh-btn" class="secondary-btn">Refresh</button>
                 </div>
                 <div class="control-group">
                     <label for="max-width">Max Width:</label>
                     <input type="number" id="max-width" value="1200" min="100" max="2000" step="10">
-                    <button id="apply-max-width-btn">Apply</button>
+                    <button id="apply-max-width-btn" class="secondary-btn">Apply</button>
                 </div>
             </div>
         </div>
@@ -318,9 +330,15 @@
                     stateMachines: 'statemach', // Try to use statemach state machine
                     fit: 'contain', // Ensure animation fits within canvas
                     alignment: 'center', // Center the animation
+                    layout: new rive.Layout({
+                        fit: 'contain',
+                        alignment: 'center',
+                        minX: 0,
+                        minY: 0,
+                        maxX: canvasElement.parentElement.clientWidth,
+                        maxY: canvasElement.parentElement.clientHeight
+                    }),
                     onLoad: () => {
-                        // Resize canvas to fit container while maintaining aspect ratio
-                        resizeCanvasToFitContainer();
                         
                         // Get available state machines
                         const stateMachines = currentRiveInstance.stateMachineNames;
@@ -411,7 +429,7 @@
             showStatus(`Max width set to ${maxWidth}px`);
         }
         
-        // Resize the canvas to fill the container while maintaining aspect ratio
+        // Handle window resize and properly scale the animation
         function resizeCanvasToFitContainer() {
             const container = document.getElementById('resizable-container');
             const canvas = document.getElementById('canvas');
@@ -420,18 +438,29 @@
                 return;
             }
             
-            // Get container dimensions
+            // Get the dimensions of the container
             const containerWidth = container.clientWidth;
             const containerHeight = container.clientHeight;
             
-            // Set canvas dimensions to match container
+            // Set the canvas dimensions
             canvas.width = containerWidth;
             canvas.height = containerHeight;
             
-            // If we have a Rive instance, resize the drawing surface
-            if (currentRiveInstance) {
-                currentRiveInstance.resizeDrawingSurfaceToCanvas();
-            }
+            // Create a new layout based on container size
+            const layout = new rive.Layout({
+                fit: 'contain',
+                alignment: 'center',
+                minX: 0,
+                minY: 0,
+                maxX: containerWidth,
+                maxY: containerHeight
+            });
+            
+            // Update the Rive instance with the new layout
+            currentRiveInstance.layout = layout;
+            
+            // Apply the new layout and resize
+            currentRiveInstance.resizeDrawingSurfaceToCanvas();
         }
         
         // Initialize container size
