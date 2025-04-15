@@ -93,7 +93,7 @@
         
         label {
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 400;
             color: var(--muted-foreground);
         }
         
@@ -115,14 +115,14 @@
         }
         
         button {
-            padding: 8px 12px;
+            padding: 6px 8px;
             border-radius: var(--radius);
             border: 1px solid var(--input);
             background-color: var(--secondary);
             color: var(--secondary-foreground);
             cursor: pointer;
             font-size: 14px;
-            font-weight: 500;
+            font-weight: 400;
             transition: all 0.2s;
             font-family: 'Inter', sans-serif;
         }
@@ -149,8 +149,8 @@
         }
         
         input[type="number"] {
-            width: 70px;
-            padding: 8px 12px;
+            width: 60px;
+            padding: 6px 8px;
             border-radius: var(--radius);
             border: 1px solid var(--input);
             font-size: 14px;
@@ -206,45 +206,7 @@
             transform: translate(-50%, -50%);
         }
         
-        /* Resizing handles */
-        .resize-handle {
-            position: absolute;
-            width: 10px;
-            height: 100%;
-            cursor: ew-resize;
-            z-index: 10;
-        }
-        
-        .resize-handle-left {
-            left: 0;
-            top: 0;
-        }
-        
-        .resize-handle-right {
-            right: 0;
-            top: 0;
-        }
-        
-        .resize-handle-bottom {
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            height: 10px;
-            cursor: ns-resize;
-        }
-        
-        .resize-handle-corner {
-            position: absolute;
-            width: 20px;
-            height: 20px;
-            right: 0;
-            bottom: 0;
-            cursor: nwse-resize;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2371717a' viewBox='0 0 16 16'%3E%3Cpath d='M11 9.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm-3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm-3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm-3 3a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1zm3 0a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5v-1z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: bottom right;
-            opacity: 0.7;
-        }
+
         
         /* Status message styling */
         #status {
@@ -311,10 +273,6 @@
         <div class="canvas-wrapper">
             <div class="canvas-container" id="resizable-container">
                 <canvas id="canvas" style="width: 840px; height: 520px;"></canvas>
-                <div class="resize-handle resize-handle-left" id="resize-left"></div>
-                <div class="resize-handle resize-handle-right" id="resize-right"></div>
-                <div class="resize-handle resize-handle-bottom" id="resize-bottom"></div>
-                <div class="resize-handle-corner" id="resize-corner"></div>
             </div>
         </div>
     </main>
@@ -477,114 +435,14 @@
             showStatus(`Canvas resized to ${newWidth}x${newHeight}px`);
         }
         
-        // Set up the resizable container with drag handles
+        // Initialize container size
         function setupResizableContainer() {
             const container = document.getElementById('resizable-container');
             const canvas = document.getElementById('canvas');
-            const widthInput = document.getElementById('canvas-width');
-            const heightInput = document.getElementById('canvas-height');
-            
-            let startX, startY, startWidth, startHeight;
-            let resizing = false;
-            let currentHandle = null;
             
             // Initialize container size to match canvas
             container.style.width = canvas.style.width;
             container.style.height = canvas.style.height;
-            
-            // Handle for left resize
-            const leftHandle = document.getElementById('resize-left');
-            leftHandle.addEventListener('mousedown', function(e) {
-                startResize(e, 'left');
-            });
-            
-            // Handle for right resize
-            const rightHandle = document.getElementById('resize-right');
-            rightHandle.addEventListener('mousedown', function(e) {
-                startResize(e, 'right');
-            });
-            
-            // Handle for bottom resize
-            const bottomHandle = document.getElementById('resize-bottom');
-            bottomHandle.addEventListener('mousedown', function(e) {
-                startResize(e, 'bottom');
-            });
-            
-            // Handle for corner resize
-            const cornerHandle = document.getElementById('resize-corner');
-            cornerHandle.addEventListener('mousedown', function(e) {
-                startResize(e, 'corner');
-            });
-            
-            // Start resize operation
-            function startResize(e, handle) {
-                e.preventDefault();
-                resizing = true;
-                currentHandle = handle;
-                
-                startX = e.clientX;
-                startY = e.clientY;
-                startWidth = parseInt(document.defaultView.getComputedStyle(container).width, 10);
-                startHeight = parseInt(document.defaultView.getComputedStyle(container).height, 10);
-                
-                document.addEventListener('mousemove', doResize);
-                document.addEventListener('mouseup', stopResize);
-            }
-            
-            // Perform resize during mouse move
-            function doResize(e) {
-                if (!resizing) return;
-                
-                let newWidth = startWidth;
-                let newHeight = startHeight;
-                
-                if (currentHandle === 'left') {
-                    const dx = startX - e.clientX;
-                    newWidth = Math.max(200, startWidth + dx);
-                } else if (currentHandle === 'right') {
-                    const dx = e.clientX - startX;
-                    newWidth = Math.max(200, startWidth + dx);
-                } else if (currentHandle === 'bottom') {
-                    const dy = e.clientY - startY;
-                    newHeight = Math.max(150, startHeight + dy);
-                } else if (currentHandle === 'corner') {
-                    const dx = e.clientX - startX;
-                    const dy = e.clientY - startY;
-                    newWidth = Math.max(200, startWidth + dx);
-                    newHeight = Math.max(150, startHeight + dy);
-                }
-                
-                // Update container size
-                container.style.width = `${newWidth}px`;
-                container.style.height = `${newHeight}px`;
-                
-                // Update canvas size
-                canvas.width = newWidth;
-                canvas.height = newHeight;
-                canvas.style.width = `${newWidth}px`;
-                canvas.style.height = `${newHeight}px`;
-                
-                // Update input fields
-                widthInput.value = newWidth;
-                heightInput.value = newHeight;
-                
-                // Update Rive instance
-                if (currentRiveInstance) {
-                    currentRiveInstance.resizeDrawingSurfaceToCanvas();
-                }
-            }
-            
-            // Stop resize operation
-            function stopResize() {
-                resizing = false;
-                document.removeEventListener('mousemove', doResize);
-                document.removeEventListener('mouseup', stopResize);
-                
-                // Show status message with final dimensions
-                const finalWidth = parseInt(canvas.style.width);
-                const finalHeight = parseInt(canvas.style.height);
-                showStatus(`Canvas resized to ${finalWidth}x${finalHeight}px`);
-            }
         }
         
         // Wait for the page to load
