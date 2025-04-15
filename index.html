@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Feature 1</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f5f5f5;
+            font-family: Arial, sans-serif;
+        }
+        
+        .container {
+            text-align: center;
+            width: 100%;
+            max-width: 900px;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        /* Set exact dimensions for the canvas as per the artboard size */
+        #canvas {
+            width: 840px; /* Exact artboard width */
+            height: 520px; /* Exact artboard height */
+            max-width: 100%;
+            margin: 0 auto;
+            display: block;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        
+        #status {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Feature 1</h1>
+        <!-- Use canvas element with style dimensions as recommended -->
+        <canvas 
+            id="canvas" 
+            style="width: 840px; height: 520px;"
+        ></canvas>
+
+    </div>
+
+    <!-- Load the Rive Runtime -->
+    <script src="https://unpkg.com/@rive-app/canvas@2.1.0"></script>
+    
+    <script>
+        // Log messages to console only
+        function showStatus(message, isError = false) {
+            console.log(isError ? 'ERROR: ' : 'INFO: ', message);
+        }
+
+        // Wait for the page to load
+        window.addEventListener('load', () => {
+            showStatus('Loading Rive runtime...');
+            
+            try {
+                const canvasElement = document.getElementById('canvas');
+                
+                // Create a new Rive instance following the recommended approach
+                const r = new rive.Rive({
+                    src: 'enviro', // Path to your Rive file
+                    canvas: canvasElement,
+                    autoplay: true,
+                    stateMachines: 'statemach', // Specify the state machine to use
+                    onLoad: () => {
+                        // Resize drawing surface to fix blurry rendering
+                        r.resizeDrawingSurfaceToCanvas();
+                        
+                        showStatus('Animation loaded successfully at high quality!');
+                        console.log('Available state machines:', r.stateMachineNames);
+                    },
+                    onError: (err) => {
+                        showStatus(`Error loading Rive animation: ${err}`, true);
+                        console.error('Error:', err);
+                    }
+                });
+                
+                // Handle window resize to maintain quality
+                window.addEventListener('resize', () => {
+                    r.resizeDrawingSurfaceToCanvas();
+                });
+                
+            } catch (error) {
+                showStatus(`Error: ${error.message}`, true);
+                console.error('Error details:', error);
+            }
+        });
+    </script>
+</body>
+</html>
