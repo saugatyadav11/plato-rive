@@ -4,12 +4,42 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rive Previews</title>
+    <!-- Shadcn UI inspired styles -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --background: #ffffff;
+            --foreground: #09090b;
+            --card: #ffffff;
+            --card-foreground: #09090b;
+            --popover: #ffffff;
+            --popover-foreground: #09090b;
+            --primary: #18181b;
+            --primary-foreground: #ffffff;
+            --secondary: #f4f4f5;
+            --secondary-foreground: #18181b;
+            --muted: #f4f4f5;
+            --muted-foreground: #71717a;
+            --accent: #f4f4f5;
+            --accent-foreground: #18181b;
+            --destructive: #ef4444;
+            --destructive-foreground: #f8fafc;
+            --border: #e4e4e7;
+            --input: #e4e4e7;
+            --ring: #18181b;
+            --radius: 0.5rem;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+        
         body {
             margin: 0;
             padding: 0;
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
@@ -17,8 +47,8 @@
         
         /* Header styling */
         header {
-            background-color: #ffffff;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            background-color: var(--background);
+            border-bottom: 1px solid var(--border);
             padding: 15px 20px;
             position: sticky;
             top: 0;
@@ -41,9 +71,10 @@
         }
         
         h1 {
-            color: #333;
+            color: var(--foreground);
             margin: 0;
             font-size: 1.5rem;
+            font-weight: 600;
         }
         
         /* Controls styling */
@@ -60,41 +91,77 @@
             gap: 8px;
         }
         
+        label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--muted-foreground);
+        }
+        
         #rive-selector {
             padding: 8px 12px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            font-size: 16px;
+            border-radius: var(--radius);
+            border: 1px solid var(--input);
+            font-size: 14px;
             min-width: 200px;
             cursor: pointer;
+            background-color: var(--background);
+            color: var(--foreground);
+            font-family: 'Inter', sans-serif;
+        }
+        
+        #rive-selector:focus {
+            outline: 2px solid var(--ring);
+            outline-offset: 1px;
         }
         
         button {
             padding: 8px 12px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            background-color: #f8f9fa;
+            border-radius: var(--radius);
+            border: 1px solid var(--input);
+            background-color: var(--secondary);
+            color: var(--secondary-foreground);
             cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.2s;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-family: 'Inter', sans-serif;
         }
         
         button:hover {
-            background-color: #e9ecef;
+            background-color: var(--muted);
+        }
+        
+        .primary-btn {
+            background-color: var(--primary);
+            color: var(--primary-foreground);
+            border: none;
+        }
+        
+        .primary-btn:hover {
+            opacity: 0.9;
+            background-color: var(--primary);
         }
         
         #refresh-btn {
             padding: 8px 12px;
-            font-size: 18px;
+            font-size: 16px;
             font-weight: bold;
         }
         
         input[type="number"] {
             width: 70px;
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            font-size: 16px;
+            padding: 8px 12px;
+            border-radius: var(--radius);
+            border: 1px solid var(--input);
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--background);
+            color: var(--foreground);
+        }
+        
+        input[type="number"]:focus {
+            outline: 2px solid var(--ring);
+            outline-offset: 1px;
         }
         
         /* Main content styling */
@@ -104,6 +171,7 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
+            background-color: var(--muted);
         }
         
         /* Canvas styling */
@@ -118,9 +186,10 @@
         
         .canvas-container {
             overflow: auto;
-            background-color: white;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            border-radius: 4px;
+            background-color: var(--card);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
         }
         
         #canvas {
@@ -135,22 +204,31 @@
             left: 50%;
             transform: translateX(-50%);
             padding: 10px 20px;
-            border-radius: 4px;
-            font-weight: bold;
+            border-radius: var(--radius);
+            font-weight: 500;
+            font-size: 14px;
             display: none; /* Hide by default, show only when needed */
             z-index: 1000;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            animation: slideUp 0.3s ease-out;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translate(-50%, 20px); opacity: 0; }
+            to { transform: translate(-50%, 0); opacity: 1; }
         }
         
         .success {
-            background-color: #d4edda;
-            color: #155724;
+            background-color: #ecfdf5;
+            color: #047857;
+            border: 1px solid #a7f3d0;
             display: block;
         }
         
         .error {
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: #fef2f2;
+            color: #b91c1c;
+            border: 1px solid #fecaca;
             display: block;
         }
     </style>
@@ -175,6 +253,7 @@
                     <label for="canvas-height">Height:</label>
                     <input type="number" id="canvas-height" value="520" min="100" max="2000" step="10">
                     <button id="resize-btn">Resize</button>
+                    <button id="auto-detect-btn" class="primary-btn">Auto Detect Dimensions</button>
                 </div>
             </div>
         </div>
@@ -211,6 +290,52 @@
             console.log(isError ? 'ERROR: ' : 'INFO: ', message);
         }
         
+        // Detect and apply artboard dimensions
+        function detectArtboardDimensions() {
+            if (!currentRiveInstance) {
+                showStatus('No animation loaded', true);
+                return false;
+            }
+            
+            try {
+                const artboard = currentRiveInstance.activeArtboard;
+                if (artboard) {
+                    const bounds = artboard.bounds;
+                    if (bounds) {
+                        const artboardWidth = Math.round(bounds.width);
+                        const artboardHeight = Math.round(bounds.height);
+                        console.log(`Detected artboard size: ${artboardWidth}x${artboardHeight}`);
+                        
+                        // Update dimension inputs with the actual artboard size
+                        document.getElementById('canvas-width').value = artboardWidth;
+                        document.getElementById('canvas-height').value = artboardHeight;
+                        
+                        // Resize the canvas to match the artboard
+                        const canvasElement = document.getElementById('canvas');
+                        canvasElement.width = artboardWidth;
+                        canvasElement.height = artboardHeight;
+                        canvasElement.style.width = `${artboardWidth}px`;
+                        canvasElement.style.height = `${artboardHeight}px`;
+                        
+                        // Force a redraw with the correct dimensions
+                        if (currentRiveInstance) {
+                            currentRiveInstance.resizeDrawingSurfaceToCanvas();
+                        }
+                        
+                        showStatus(`Applied artboard dimensions: ${artboardWidth}x${artboardHeight}`);
+                        return true;
+                    }
+                }
+            } catch (e) {
+                console.log('Could not determine artboard size:', e);
+                showStatus('Failed to detect artboard dimensions', true);
+                return false;
+            }
+            
+            showStatus('Could not detect artboard dimensions', true);
+            return false;
+        }
+        
         // Load a Rive file
         function loadRiveFile(filename) {
             try {
@@ -234,30 +359,6 @@
                     fit: 'contain', // Ensure animation fits within canvas
                     alignment: 'center', // Center the animation
                     onLoad: () => {
-                        // Get the artboard size from the loaded animation
-                        try {
-                            const artboard = currentRiveInstance.activeArtboard;
-                            if (artboard) {
-                                const bounds = artboard.bounds;
-                                if (bounds) {
-                                    const artboardWidth = Math.round(bounds.width);
-                                    const artboardHeight = Math.round(bounds.height);
-                                    console.log(`Artboard size: ${artboardWidth}x${artboardHeight}`);
-                                    
-                                    // Update dimension inputs with the actual artboard size
-                                    document.getElementById('canvas-width').value = artboardWidth;
-                                    document.getElementById('canvas-height').value = artboardHeight;
-                                    
-                                    // Resize the canvas to match the artboard
-                                    canvasElement.width = artboardWidth;
-                                    canvasElement.height = artboardHeight;
-                                    canvasElement.style.width = `${artboardWidth}px`;
-                                    canvasElement.style.height = `${artboardHeight}px`;
-                                }
-                            }
-                        } catch (e) {
-                            console.log('Could not determine artboard size:', e);
-                        }
                         
                         // CRITICAL: Resize drawing surface to fix blurry rendering
                         // This ensures the canvas drawing surface matches the display size
@@ -383,6 +484,10 @@
             // Set up the resize button
             const resizeBtn = document.getElementById('resize-btn');
             resizeBtn.addEventListener('click', resizeCanvas);
+            
+            // Set up the auto detect dimensions button
+            const autoDetectBtn = document.getElementById('auto-detect-btn');
+            autoDetectBtn.addEventListener('click', detectArtboardDimensions);
             
             // Fetch the list of Rive files
             fetchRiveFiles();
