@@ -28,6 +28,57 @@
             margin-bottom: 20px;
         }
         
+        /* Controls styling */
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .dimensions-controls {
+            margin-top: 0;
+        }
+        
+        #rive-selector {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+            min-width: 200px;
+            cursor: pointer;
+        }
+        
+        button {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            background-color: #f8f9fa;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.2s;
+        }
+        
+        button:hover {
+            background-color: #e9ecef;
+        }
+        
+        #refresh-btn {
+            padding: 8px 12px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        
+        input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-size: 16px;
+        }
+        
         /* Set exact dimensions for the canvas as per the artboard size */
         #canvas {
             width: 840px; /* Exact artboard width */
@@ -69,6 +120,15 @@
                 <option value="enviro" selected>enviro</option>
                 <!-- Other Rive files will be loaded dynamically -->
             </select>
+            <button id="refresh-btn" title="Refresh animation list">↻</button>
+        </div>
+        
+        <div class="controls dimensions-controls">
+            <label for="canvas-width">Width:</label>
+            <input type="number" id="canvas-width" value="840" min="100" max="2000" step="10">
+            <label for="canvas-height">Height:</label>
+            <input type="number" id="canvas-height" value="520" min="100" max="2000" step="10">
+            <button id="resize-btn">Resize</button>
         </div>
         <!-- Use canvas element with style dimensions as recommended -->
         <canvas 
@@ -117,7 +177,9 @@
                     autoplay: true,
                     stateMachines: 'statemach', // Try to use statemach state machine
                     onLoad: () => {
-                        // Resize drawing surface to fix blurry rendering
+                        // CRITICAL: Resize drawing surface to fix blurry rendering
+                        // This ensures the canvas drawing surface matches the display size
+                        // and properly accounts for device pixel ratio
                         currentRiveInstance.resizeDrawingSurfaceToCanvas();
                         
                         // Get available state machines
@@ -130,6 +192,24 @@
                         } else if (stateMachines.length > 0) {
                             currentRiveInstance.play(stateMachines[0]);
                             console.log(`Using state machine: ${stateMachines[0]} (statemach not found)`);
+                        }
+                        
+                        // Get the artboard size from the loaded animation
+                        try {
+                            const artboard = currentRiveInstance.activeArtboard;
+                            if (artboard) {
+                                const bounds = artboard.bounds;
+                                if (bounds) {
+                                    console.log(`Artboard size: ${bounds.width}x${bounds.height}`);
+                                    // Update dimension inputs with the actual artboard size
+                                    document.getElementById('canvas-width').value = Math.round(bounds.width);
+                                    document.getElementById('canvas-height').value = Math.round(bounds.height);
+                                    // Resize the canvas to match the artboard
+                                    resizeCanvas();
+                                }
+                            }
+                        } catch (e) {
+                            console.log('Could not determine artboard size:', e);
                         }
                         
                         showStatus(`Loaded ${filename} successfully!`);
@@ -186,6 +266,29 @@
             }
         }
 
+        // Resize the canvas with the specified dimensions
+        function resizeCanvas() {
+            const widthInput = document.getElementById('canvas-width');
+            const heightInput = document.getElementById('canvas-height');
+            const canvas = document.getElementById('canvas');
+            
+            // Get the new dimensions
+            const newWidth = parseInt(widthInput.value, 10) || 840;
+            const newHeight = parseInt(heightInput.value, 10) || 520;
+            
+            // Update the canvas style
+            canvas.style.width = `${newWidth}px`;
+            canvas.style.height = `${newHeight}px`;
+            
+            // If we have a Rive instance, resize the drawing surface
+            if (currentRiveInstance) {
+                // This is critical for fixing the blurry rendering
+                currentRiveInstance.resizeDrawingSurfaceToCanvas();
+            }
+            
+            showStatus(`Canvas resized to ${newWidth}x${newHeight}px`);
+        }
+        
         // Wait for the page to load
         window.addEventListener('load', () => {
             showStatus('Loading Rive runtime...');
@@ -195,6 +298,17 @@
             selector.addEventListener('change', (e) => {
                 loadRiveFile(e.target.value);
             });
+            
+            // Set up the refresh button
+            const refreshBtn = document.getElementById('refresh-btn');
+            refreshBtn.addEventListener('click', () => {
+                fetchRiveFiles();
+                showStatus('Animation list refreshed');
+            });
+            
+            // Set up the resize button
+            const resizeBtn = document.getElementById('resize-btn');
+            resizeBtn.addEventListener('click', resizeCanvas);
             
             // Fetch the list of Rive files
             fetchRiveFiles();
