@@ -81,14 +81,14 @@
         .controls-section {
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 16px;
             flex-wrap: wrap;
         }
         
         .control-group {
             display: flex;
             align-items: center;
-            gap: 8px;
+            gap: 12px;
         }
         
         label {
@@ -97,22 +97,35 @@
             color: var(--muted-foreground);
         }
         
-        #rive-selector {
-            padding: 8px 12px;
+        /* Dropdown styling */
+        select {
+            padding: 6px 12px;
             border-radius: var(--radius);
             border: 1px solid var(--input);
-            font-size: 14px;
-            min-width: 200px;
-            cursor: pointer;
             background-color: var(--background);
             color: var(--foreground);
+            font-size: 14px;
             font-family: 'Inter', sans-serif;
+            min-width: 180px;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 8px center;
+            background-size: 16px;
         }
         
-        #rive-selector:focus {
-            outline: 2px solid var(--ring);
-            outline-offset: 1px;
+        select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 1px var(--primary);
         }
+        
+        /* Individual overrides for specific selectors */
+        #rive-selector {
+            cursor: pointer;
+        }
+        
+
         
         button {
             padding: 6px 8px;
@@ -207,6 +220,13 @@
             align-items: center;
             margin: 0 auto;
             transition: width 0.3s, height 0.3s;
+        }
+        
+        /* Add debug border to see canvas boundaries */
+        canvas {
+            display: block; /* Remove any extra space */
+            width: 100%;
+            height: 100%;
         }
         
         #canvas {
@@ -340,24 +360,25 @@
                     canvas: canvasElement,
                     autoplay: true,
                     stateMachines: 'statemach',
-                    // The key changes are here - using the actual enum values from the Rive library
-                    // and setting explicit boundaries for the layout
-                    layout: new rive.Layout({
-                        fit: rive.Fit.Contain,
-                        alignment: rive.Alignment.Center,
-                        minX: 0,
-                        minY: 0,
-                        maxX: canvasWidth,
-                        maxY: canvasHeight
-                    }),
+                    fit: 'cover', // Force it to fill the space
+                    alignment: 'center',
+                    // Use useArtboardSize: false to ensure it scales properly
+                    useArtboardSize: false,
                     onLoad: () => {
-                        // CRITICAL - Fix blurry rendering
+                        // Debug information about the loaded animation
+                        if (currentRiveInstance && currentRiveInstance.activeArtboard) {
+                            const artboard = currentRiveInstance.activeArtboard;
+                            const bounds = artboard.bounds;
+                            console.log(`Loaded artboard dimensions: ${bounds.width}x${bounds.height}`);
+                            console.log(`Canvas dimensions: ${canvasElement.width}x${canvasElement.height}`);
+                        }
+                        
+                        // Force a redraw after a slight delay to ensure proper rendering
                         setTimeout(() => {
                             if (currentRiveInstance) {
-                                // Force the canvas drawing surface to update
                                 currentRiveInstance.resizeDrawingSurfaceToCanvas();
                             }
-                        }, 10);
+                        }, 50);
                         
                         // Get available state machines
                         const stateMachines = currentRiveInstance.stateMachineNames;
@@ -453,10 +474,15 @@
             const selector = document.getElementById('rive-selector');
             const currentFile = selector.value;
             
-            // IF we have a current animation, completely reload it with new dimensions
+            // If we have a current animation, completely reload it with new dimensions
             if (currentFile) {
                 // Clean house - remove the old instance entirely
                 if (currentRiveInstance) {
+                    // Check if we need to reload by comparing with original dimensions
+                    const containerWidth = document.getElementById('resizable-container').clientWidth;
+                    const containerHeight = document.getElementById('resizable-container').clientHeight;
+                    console.log(`New container dimensions: ${containerWidth}x${containerHeight}`);
+                    
                     currentRiveInstance.cleanup();
                     currentRiveInstance = null;
                 }
@@ -468,7 +494,7 @@
                 // with the new dimensions already set in the DOM
                 setTimeout(() => {
                     loadRiveFile(currentFile, true); // true = is a resize operation
-                }, 50);
+                }, 10);
             } else {
                 showStatus(`Size set to ${width} × ${height}`);
             }
@@ -479,6 +505,8 @@
             const container = document.getElementById('resizable-container');
             const canvas = document.getElementById('canvas');
             
+            console.log(`Setting dimensions to ${width}x${height}`);
+            
             // Set pixel dimensions on the elements
             container.style.width = `${width}px`;
             container.style.height = `${height}px`;
@@ -486,6 +514,10 @@
             // Set the actual canvas element dimensions
             canvas.width = width;
             canvas.height = height;
+            
+            // Also update these properties in case they matter
+            canvas.style.width = `${width}px`;
+            canvas.style.height = `${height}px`;
         }
         
 
