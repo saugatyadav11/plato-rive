@@ -261,19 +261,16 @@
             </div>
             <div class="controls-section">
                 <div class="control-group">
-                    <label for="rive-selector">Animation:</label>
                     <select id="rive-selector">
                         <!-- Rive files will be loaded dynamically -->
                     </select>
                     <button id="refresh-btn" class="primary-btn">Refresh</button>
                 </div>
                 <div class="control-group">
-                    <label for="size-preset">Size:</label>
                     <select id="size-preset">
                         <option value="840x520">840 × 520</option>
                         <option value="1440x600">1440 × 600</option>
                     </select>
-                    <button id="apply-size-btn" class="secondary-btn">Apply</button>
                 </div>
             </div>
         </div>
@@ -332,10 +329,8 @@
                     canvas: canvasElement,
                     autoplay: true,
                     stateMachines: 'statemach', // Try to use statemach state machine
-                    fit: 'contain', // Ensure animation fits within canvas
+                    fit: 'contain', // Always use contain to maintain aspect ratio
                     alignment: 'center', // Center the animation
-                    fit: 'contain',
-                    alignment: 'center',
                     renderFrameRate: 60,
                     onLoad: () => {
                         // CRITICAL: Force a redraw with correct dimensions to fix blurriness
@@ -436,12 +431,31 @@
             canvas.width = width;
             canvas.height = height;
             
-            // Fix blurriness by ensuring the drawing surface matches the canvas
+            // For artboards with different dimensions, ensure they scale properly
             if (currentRiveInstance) {
+                // Update the layout to force rescaling
+                const layout = new rive.Layout({
+                    fit: 'contain',
+                    alignment: 'center',
+                });
+                currentRiveInstance.layout = layout;
+                
+                // Fix blurriness
                 currentRiveInstance.resizeDrawingSurfaceToCanvas();
             }
             
-            showStatus(`Size set to ${width} × ${height}`);  
+            showStatus(`Size set to ${width} × ${height}`);
+            
+            // Try to reload the current animation to ensure proper scaling
+            if (currentRiveInstance) {
+                const selector = document.getElementById('rive-selector');
+                const currentFile = selector.value;
+                if (currentFile) {
+                    setTimeout(() => {
+                        loadRiveFile(currentFile);
+                    }, 50);
+                }
+            }
         }
         
         // Function to ensure the canvas fits the animation
@@ -473,16 +487,19 @@
             
 
             
-            // Set up the size preset dropdown and button
-            const applySizeBtn = document.getElementById('apply-size-btn');
-            applySizeBtn.addEventListener('click', applySizePreset);
+            // Set up the size preset dropdown to apply changes immediately
+            const sizePresetSelect = document.getElementById('size-preset');
+            sizePresetSelect.addEventListener('change', applySizePreset);
             
             // Add window resize handler to maintain proper rendering
             window.addEventListener('resize', function() {
                 if (currentRiveInstance) {
-                    resizeCanvasToFitContainer();
+                    currentRiveInstance.resizeDrawingSurfaceToCanvas();
                 }
             });
+            
+            // Apply the default size preset on startup
+            setTimeout(applySizePreset, 500);
             
             // Fetch the list of Rive files
             fetchRiveFiles();
