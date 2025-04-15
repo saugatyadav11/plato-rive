@@ -8,38 +8,56 @@
         body {
             margin: 0;
             padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #f5f5f5;
             font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
         }
         
-        .container {
-            text-align: center;
-            width: 100%;
-            max-width: 900px;
-            padding: 20px;
+        /* Header styling */
+        header {
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            padding: 15px 20px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        
+        .title-section {
+            display: flex;
+            align-items: center;
         }
         
         h1 {
             color: #333;
-            margin-bottom: 20px;
+            margin: 0;
+            font-size: 1.5rem;
         }
         
         /* Controls styling */
-        .controls {
-            margin-bottom: 20px;
+        .controls-section {
             display: flex;
-            justify-content: center;
             align-items: center;
-            gap: 10px;
+            gap: 15px;
             flex-wrap: wrap;
         }
         
-        .dimensions-controls {
-            margin-top: 0;
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
         #rive-selector {
@@ -72,37 +90,56 @@
         }
         
         input[type="number"] {
-            width: 80px;
+            width: 70px;
             padding: 8px;
             border-radius: 4px;
             border: 1px solid #ccc;
             font-size: 16px;
         }
         
-        /* Set exact dimensions for the canvas as per the artboard size */
-        #canvas {
-            width: 840px; /* Exact artboard width */
-            height: 520px; /* Exact artboard height */
-            max-width: 100%;
+        /* Main content styling */
+        main {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        /* Canvas styling */
+        .canvas-wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            max-width: 1440px;
             margin: 0 auto;
-            display: block;
-            background-color: white;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            object-fit: contain; /* Prevent distortion */
         }
         
         .canvas-container {
-            width: 100%;
-            overflow-x: auto; /* Allow horizontal scrolling for very wide animations */
-            margin: 0 auto;
+            overflow: auto;
+            background-color: white;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
         }
         
+        #canvas {
+            display: block;
+            object-fit: contain; /* Prevent distortion */
+        }
+        
+        /* Status message styling */
         #status {
-            margin-top: 20px;
-            padding: 10px;
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 20px;
             border-radius: 4px;
             font-weight: bold;
             display: none; /* Hide by default, show only when needed */
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
         }
         
         .success {
@@ -119,32 +156,39 @@
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>Rive Previews</h1>
-        <div class="controls">
-            <label for="rive-selector">Select Animation: </label>
-            <select id="rive-selector">
-                <!-- Rive files will be loaded dynamically -->
-            </select>
-            <button id="refresh-btn" title="Refresh animation list">↻</button>
+    <header>
+        <div class="header-content">
+            <div class="title-section">
+                <h1>Rive Previews</h1>
+            </div>
+            <div class="controls-section">
+                <div class="control-group">
+                    <label for="rive-selector">Animation:</label>
+                    <select id="rive-selector">
+                        <!-- Rive files will be loaded dynamically -->
+                    </select>
+                    <button id="refresh-btn" title="Refresh animation list">↻</button>
+                </div>
+                <div class="control-group">
+                    <label for="canvas-width">Width:</label>
+                    <input type="number" id="canvas-width" value="840" min="100" max="2000" step="10">
+                    <label for="canvas-height">Height:</label>
+                    <input type="number" id="canvas-height" value="520" min="100" max="2000" step="10">
+                    <button id="resize-btn">Resize</button>
+                </div>
+            </div>
         </div>
-        
-        <div class="controls dimensions-controls">
-            <label for="canvas-width">Width:</label>
-            <input type="number" id="canvas-width" value="840" min="100" max="2000" step="10">
-            <label for="canvas-height">Height:</label>
-            <input type="number" id="canvas-height" value="520" min="100" max="2000" step="10">
-            <button id="resize-btn">Resize</button>
+    </header>
+    
+    <main>
+        <div class="canvas-wrapper">
+            <div class="canvas-container">
+                <canvas id="canvas" style="width: 840px; height: 520px;"></canvas>
+            </div>
         </div>
-        <!-- Use canvas element with style dimensions as recommended -->
-        <div class="canvas-container">
-            <canvas 
-                id="canvas" 
-                style="width: 840px; height: 520px;"
-            ></canvas>
-        </div>
-        <div id="status"></div>
-    </div>
+    </main>
+    
+    <div id="status"></div>
 
     <!-- Load the latest Rive Runtime -->
     <script src="https://unpkg.com/@rive-app/canvas@latest"></script>
@@ -172,11 +216,8 @@
             try {
                 showStatus(`Loading ${filename}...`);
                 
-                // Reset canvas dimensions to default before loading new file
-                // This prevents the previous file's dimensions from affecting the new file
+                // Get the canvas element
                 const canvasElement = document.getElementById('canvas');
-                canvasElement.style.width = '840px';
-                canvasElement.style.height = '520px';
                 
                 // Clean up previous instance if it exists
                 if (currentRiveInstance) {
@@ -193,23 +234,6 @@
                     fit: 'contain', // Ensure animation fits within canvas
                     alignment: 'center', // Center the animation
                     onLoad: () => {
-                        // CRITICAL: Resize drawing surface to fix blurry rendering
-                        // This ensures the canvas drawing surface matches the display size
-                        // and properly accounts for device pixel ratio
-                        currentRiveInstance.resizeDrawingSurfaceToCanvas();
-                        
-                        // Get available state machines
-                        const stateMachines = currentRiveInstance.stateMachineNames;
-                        console.log('Available state machines:', stateMachines);
-                        
-                        // Try to play statemach if available, otherwise use the first available
-                        if (stateMachines.includes('statemach')) {
-                            currentRiveInstance.play('statemach');
-                        } else if (stateMachines.length > 0) {
-                            currentRiveInstance.play(stateMachines[0]);
-                            console.log(`Using state machine: ${stateMachines[0]} (statemach not found)`);
-                        }
-                        
                         // Get the artboard size from the loaded animation
                         try {
                             const artboard = currentRiveInstance.activeArtboard;
@@ -225,23 +249,31 @@
                                     document.getElementById('canvas-height').value = artboardHeight;
                                     
                                     // Resize the canvas to match the artboard
+                                    canvasElement.width = artboardWidth;
+                                    canvasElement.height = artboardHeight;
                                     canvasElement.style.width = `${artboardWidth}px`;
                                     canvasElement.style.height = `${artboardHeight}px`;
-                                    
-                                    // Force a redraw with the correct dimensions
-                                    currentRiveInstance.resizeDrawingSurfaceToCanvas();
-                                    
-                                    // Adjust container width for very wide animations
-                                    const container = document.querySelector('.canvas-container');
-                                    if (artboardWidth > window.innerWidth - 40) {
-                                        container.style.width = `${Math.min(artboardWidth, 1440)}px`;
-                                    } else {
-                                        container.style.width = '100%';
-                                    }
                                 }
                             }
                         } catch (e) {
                             console.log('Could not determine artboard size:', e);
+                        }
+                        
+                        // CRITICAL: Resize drawing surface to fix blurry rendering
+                        // This ensures the canvas drawing surface matches the display size
+                        // and properly accounts for device pixel ratio
+                        currentRiveInstance.resizeDrawingSurfaceToCanvas();
+                        
+                        // Get available state machines
+                        const stateMachines = currentRiveInstance.stateMachineNames;
+                        console.log('Available state machines:', stateMachines);
+                        
+                        // Try to play statemach if available, otherwise use the first available
+                        if (stateMachines.includes('statemach')) {
+                            currentRiveInstance.play('statemach');
+                        } else if (stateMachines.length > 0) {
+                            currentRiveInstance.play(stateMachines[0]);
+                            console.log(`Using state machine: ${stateMachines[0]} (statemach not found)`);
                         }
                         
                         showStatus(`Loaded ${filename} successfully!`);
@@ -316,17 +348,11 @@
             const newWidth = parseInt(widthInput.value, 10) || 840;
             const newHeight = parseInt(heightInput.value, 10) || 520;
             
-            // Update the canvas style
+            // Update the canvas dimensions
+            canvas.width = newWidth;
+            canvas.height = newHeight;
             canvas.style.width = `${newWidth}px`;
             canvas.style.height = `${newHeight}px`;
-            
-            // Adjust container width for very wide animations
-            const container = document.querySelector('.canvas-container');
-            if (newWidth > window.innerWidth - 40) {
-                container.style.width = `${Math.min(newWidth, 1440)}px`;
-            } else {
-                container.style.width = '100%';
-            }
             
             // If we have a Rive instance, resize the drawing surface
             if (currentRiveInstance) {
